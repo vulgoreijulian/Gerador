@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate XI - Montador Tático de Elenco</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        pitch: {
+                            light: '#2e7d32',
+                            dark: '#1b4332',
+                        },
+                        gold: {
+                            400: '#facc15',
+                            500: '#eab308',
+                            600: '#ca8a04',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #090d16;
+            color: #f8fafc;
+            user-select: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #10b981;
+        }
+
+        /* Pitch Styles */
+        .pitch-container {
+            position: relative;
+            background: radial-gradient(circle at center, #1b4332 0%, #0d281e 100%);
+            border-radius: 1.25rem;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .pitch-pattern {
+            background-image: repeating-linear-gradient(
+                0deg,
+                rgba(255, 255, 255, 0.03),
+                rgba(255, 255, 255, 0.03) 35px,
+                rgba(0, 0, 0, 0.06) 35px,
+                rgba(0, 0, 0, 0.06) 70px
+            );
+        }
+
+        /* 3D Pitch Perspective Effect */
+        .pitch-3d {
+            perspective: 1100px;
+        }
+        
+        .pitch-3d .pitch-inner {
+            transform: rotateX(28deg) scale(0.92);
+            transform-style: preserve-3d;
+            box-shadow: 0 35px 60px rgba(0, 0, 0, 0.85);
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .pitch-2d .pitch-inner {
+            transform: rotateX(0deg) scale(1);
+            transition: transform 0.6s ease;
+        }
+
+        /* Player Card Component Hover */
+        .player-slot {
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), z-index 0.2s;
+        }
+
+        .player-slot:hover {
+            transform: scale(1.1) translateY(-6px) translate(-50%, -50%) !important;
+            z-index: 40 !important;
+        }
+
+        /* Gold Card Glow */
+        .card-gold {
+            background: linear-gradient(135deg, #fef08a 0%, #eab308 50%, #854d0e 100%);
+            border: 1.5 border;
+            border-color: #fef08a;
+            box-shadow: 0 4px 20px rgba(234, 179, 8, 0.35);
+        }
+
+        /* Modal Overlay Fade */
+        .modal-backdrop {
+            background-color: rgba(3, 7, 18, 0.82);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100 overflow-x-hidden">
+
+    <header class="bg-slate-900/90 border-b border-slate-800/80 sticky top-0 z-40 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-emerald-500 to-teal-400 p-2.5 rounded-xl shadow-lg shadow-emerald-500/20">
+                    <i class="fa-solid fa-shield-halved text-slate-950 text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-emerald-400 bg-clip-text text-transparent">
+                        ULTIMATE XI <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono uppercase">Tática 80+</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">Monte e gerencie seu time dos sonhos com craques mundiais</p>
+                </div>
+            </div>
+
+            <!-- Top Control Action Buttons -->
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <button onclick="generateRandomSquad()" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-900/30 transition-all hover:scale-105 active:scale-95">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                    <span>Escalar Aleatório</span>
+                </button>
+                <button onclick="clearSquad()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-medium text-xs sm:text-sm border border-slate-700/80 flex items-center gap-1.5 transition-all">
+                    <i class="fa-solid fa-trash-can text-red-400"></i>
+                    <span class="hidden sm:inline">Limpar</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- PITCH AREA (7 cols) -->
+        <section class="lg:col-span-7 flex flex-col space-y-4">
+            
+            <!-- Controls Bar Above Pitch -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+                <!-- Formation Selector -->
+                <div class="flex items-center space-x-2">
+                    <label for="formation-select" class="text-xs font-semibold uppercase text-slate-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-diagram-project text-emerald-400"></i>
+                        <span>Tática:</span>
+                    </label>
+                    <select id="formation-select" onchange="changeFormation(this.value)" class="bg-slate-950 border border-slate-700 text-white rounded-xl text-xs sm:text-sm font-bold px-3 py-1.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none cursor-pointer">
+                        <option value="4-3-3">4-3-3 Clássico</option>
+                        <option value="4-4-2">4-4-2 Tradicional</option>
+                        <option value="3-5-2">3-5-2 Ofensivo</option>
+                        <option value="4-2-3-1">4-2-3-1 Moderno</option>
+                        <option value="3-4-3">3-4-3 Total</option>
+                        <option value="4-1-4-1">4-1-4-1 Equilibrado</option>
+                        <option value="4-5-1">4-5-1 Defensivo</option>
+                        <option value="5-3-2">5-3-2 Contra-Ataque</option>
+                        <option value="3-4-1-2">3-4-1-2 Criativo</option>
+                        <option value="4-3-1-2">4-3-1-2 Losango</option>
+                    </select>
+                </div>
+
+                <!-- 2D / 3D Pitch View Toggle -->
+                <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
+                    <button id="view-2d-btn" onclick="togglePitchView('2d')" class="px-3 py-1 rounded-lg text-xs font-bold transition-all bg-emerald-500 text-slate-950 shadow-md">
+                        <i class="fa-solid fa-map"></i> 2D Tático
+                    </button>
+                    <button id="view-3d-btn" onclick="togglePitchView('3d')" class="px-3 py-1 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all">
+                        <i class="fa-solid fa-cube"></i> 3D Relvado
+                    </button>
+                </div>
+
+                <!-- Squad OVR Stats Badge -->
+                <div class="flex items-center gap-3 bg-slate-950/80 px-3 py-1 rounded-xl border border-slate-800">
+                    <div class="text-center">
+                        <span class="block text-[9px] text-slate-400 uppercase font-semibold">Média OVR</span>
+                        <span id="avg-ovr-display" class="text-xs sm:text-sm font-extrabold text-amber-400">0</span>
+                    </div>
+                    <div class="h-5 w-px bg-slate-800"></div>
+                    <div class="text-center">
+                        <span class="block text-[9px] text-slate-400 uppercase font-semibold">Titulares</span>
+                        <span id="squad-count-display" class="text-xs sm:text-sm font-bold text-emerald-400">0/11</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pitch Canvas Area -->
+            <div id="pitch-wrapper" class="pitch-container pitch-2d w-full aspect-[3/4] sm:aspect-[4/5] md:aspect-[3/4] flex flex-col justify-between p-4 sm:p-6 border border-emerald-900/30">
+                <div class="pitch-inner w-full h-full relative flex flex-col justify-between">
+                    
+                    <!-- Pitch Markings Layer -->
+                    <div class="absolute inset-0 pitch-pattern pointer-events-none rounded-xl opacity-90"></div>
+                    <div class="absolute inset-0 border-2 border-white/20 rounded-xl pointer-events-none"></div>
+                    <div class="absolute top-1/2 left-0 right-0 h-0.5 bg-white/20 pointer-events-none -translate-y-1/2"></div>
+                    <div class="absolute top-1/2 left-1/2 w-28 h-28 sm:w-36 sm:h-36 border-2 border-white/20 rounded-full pointer-events-none -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
+                        <div class="w-2 h-2 bg-white/30 rounded-full"></div>
+                    </div>
+                    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-1/2 h-1/6 border-b-2 border-x-2 border-white/20 pointer-events-none"></div>
+                    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-1/6 border-t-2 border-x-2 border-white/20 pointer-events-none"></div>
+
+                    <!-- Dynamic Player Slots Container -->
+                    <div id="formation-field" class="absolute inset-0 w-full h-full">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- COMPACT & COLLAPSIBLE SIDEBAR: DATABASE (5 cols) -->
+        <section id="sidebar-panel" class="lg:col-span-5 flex flex-col bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden transition-all duration-300 shadow-xl">
+            
+            <!-- Panel Header with Minimize/Expand Toggle Button -->
+            <div class="p-3.5 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-users text-emerald-400 text-sm"></i>
+                    <h2 class="text-sm font-bold text-white">Banco de Jogadores (80+)</h2>
+                    <span id="player-count-badge" class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-mono border border-emerald-500/20">0</span>
+                </div>
+
+                <!-- Minimize / Expand Toggle -->
+                <button onclick="toggleSidebarMinimize()" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700/80 flex items-center gap-1.5 transition-all">
+                    <i id="minimize-icon" class="fa-solid fa-chevron-up text-xs"></i>
+                    <span id="minimize-text" class="text-[11px]">Minimizar</span>
+                </button>
+            </div>
+
+            <!-- Collapsible Body Content -->
+            <div id="sidebar-content" class="flex flex-col transition-all duration-300">
+                
+                <!-- Search Box -->
+                <div class="p-3 bg-slate-950/60 border-b border-slate-800/60">
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                        <input type="text" id="player-search" oninput="filterPlayers()" placeholder="Buscar por Nome, Liga, Clube ou País..." class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all">
+                    </div>
+                </div>
+
+                <!-- Position Filter Tabs -->
+                <div class="bg-slate-950 border-b border-slate-800 px-2 pt-2 flex overflow-x-auto no-scrollbar gap-1 text-xs font-semibold">
+                    <button onclick="setActiveTab('ALL')" id="tab-ALL" class="tab-btn px-2.5 py-1.5 rounded-t-lg bg-slate-800 text-emerald-400 border-t-2 border-emerald-500 whitespace-nowrap text-[11px] transition-all">
+                        TODAS
+                    </button>
+                    <button onclick="setActiveTab('GK')" id="tab-GK" class="tab-btn px-2.5 py-1.5 rounded-t-lg text-slate-400 hover:text-slate-200 hover:bg-slate-900 whitespace-nowrap text-[11px] transition-all">
+                        GOL
+                    </button>
+                    <button onclick="setActiveTab('DEF')" id="tab-DEF" class="tab-btn px-2.5 py-1.5 rounded-t-lg text-slate-400 hover:text-slate-200 hover:bg-slate-900 whitespace-nowrap text-[11px] transition-all">
+                        DEF
+                    </button>
+                    <button onclick="setActiveTab('MID')" id="tab-MID" class="tab-btn px-2.5 py-1.5 rounded-t-lg text-slate-400 hover:text-slate-200 hover:bg-slate-900 whitespace-nowrap text-[11px] transition-all">
+                        MEI
+                    </button>
+                    <button onclick="setActiveTab('FWD')" id="tab-FWD" class="tab-btn px-2.5 py-1.5 rounded-t-lg text-slate-400 hover:text-slate-200 hover:bg-slate-900 whitespace-nowrap text-[11px] transition-all">
+                        ATA
+                    </button>
+                </div>
+
+                <!-- Player Scrollable List (Compact max-height) -->
+                <div id="player-list-container" class="max-h-[460px] overflow-y-auto p-2.5 space-y-2">
+                    <!-- Dynamic Cards Rendered Here -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- INTERACTIVE PLAYER SWAP MODAL -->
+    <div id="swap-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl transform transition-all">
+            
+            <!-- Modal Header -->
+            <div class="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                    <span class="text-[10px] text-emerald-400 font-mono uppercase tracking-wider block">Substituição Direta</span>
+                    <h3 class="text-base font-extrabold text-white flex items-center gap-2">
+                        <span>Escolher Jogador para a Posição</span>
+                        <span id="modal-pos-badge" class="bg-amber-500 text-slate-950 text-xs px-2 py-0.5 rounded font-black uppercase">GOL</span>
+                    </h3>
+                </div>
+                <button onclick="closeSwapModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-all">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Search Input -->
+            <div class="p-3 bg-slate-900/90 border-b border-slate-800">
+                <input type="text" id="modal-search" oninput="renderModalPlayers()" placeholder="Filtrar nesta posição por nome, país, liga..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- Modal Scrollable Player List -->
+            <div id="modal-player-list" class="max-h-80 overflow-y-auto p-3 space-y-2">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-3 bg-slate-950 border-t border-slate-800 flex justify-between items-center text-xs">
+                <button id="modal-remove-btn" onclick="removePlayerFromCurrentSlot()" class="text-red-400 hover:text-red-300 font-semibold flex items-center gap-1">
+                    <i class="fa-solid fa-user-minus"></i> Desescalar Posição
+                </button>
+                <button onclick="closeSwapModal()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Massive Database of 100+ Famous World Players (OVR 80+) with Real Positions & Current Leagues
+        const PLAYERS_DATABASE = [
+            // GOALKEEPERS (GOL / GK)
+            { id: 1, name: "Thibaut Courtois", pos: "GOL", cat: "GK", ovr: 89, club: "Real Madrid", league: "La Liga", country: "Bélgica", flag: "🇧🇪" },
+            { id: 2, name: "Alisson Becker", pos: "GOL", cat: "GK", ovr: 89, club: "Liverpool", league: "Premier League", country: "Brasil", flag: "🇧🇷" },
+            { id: 3, name: "Gianluigi Donnarumma", pos: "GOL", cat: "GK", ovr: 89, club: "PSG", league: "Ligue 1", country: "Itália", flag: "🇮🇹" },
+            { id: 4, name: "Marc-André ter Stegen", pos: "GOL", cat: "GK", ovr: 89, club: "FC Barcelona", league: "La Liga", country: "Alemanha", flag: "🇩🇪" },
+            { id: 5, name: "Ederson", pos: "GOL", cat: "GK", ovr: 88, club: "Manchester City", league: "Premier League", country: "Brasil", flag: "🇧🇷" },
+            { id: 6, name: "Jan Oblak", pos: "GOL", cat: "GK", ovr: 88, club: "Atlético de Madrid", league: "La Liga", country: "Eslovênia", flag: "🇸🇮" },
+            { id: 7, name: "Gregor Kobel", pos: "GOL", cat: "GK", ovr: 88, club: "Borussia Dortmund", league: "Bundesliga", country: "Suiça", flag: "🇨🇭" },
+            { id: 8, name: "Emiliano Martínez", pos: "GOL", cat: "GK", ovr: 87, club: "Aston Villa", league: "Premier League", country: "Argentina", flag: "🇦🇷" },
+            { id: 9, name: "Manuel Neuer", pos: "GOL", cat: "GK", ovr: 87, club: "Bayern de Munique", league: "Bundesliga", country: "Alemanha", flag: "🇩🇪" },
+            { id: 10, name: "Yann Sommer", pos: "GOL", cat: "GK", ovr: 87, club: "Inter de Milão", league: "Serie A", country: "Suiça", flag: "🇨🇭" },
+            { id: 11, name: "Mike Maignan", pos: "GOL", cat: "GK", ovr: 87, club: "AC Milan", league: "Serie A", country: "França", flag: "🇫🇷" },
+            { id: 12, name: "Unai Simón", pos: "GOL", cat: "GK", ovr: 85, club: "Athletic Bilbao", league: "La Liga", country: "Espanha", flag: "🇪🇸" },
+            { id: 13, name: "David Raya", pos: "GOL", cat: "GK", ovr: 85, club: "Arsenal", league: "Premier League", country: "Espanha", flag: "🇪🇸" },
+            { id: 14, name: "Yassine Bounou", pos: "GOL", cat: "GK", ovr: 84, club: "Al-Hilal", league: "Saudi Pro League", country: "Marrocos", flag: "🇲🇦" },
+
+            // DEFENDERS (ZAG, LD, LE / DEF)
+            { id: 15, name: "Virgil van Dijk", pos: "ZAG", cat: "DEF", ovr: 89, club: "Liverpool", league: "Premier League", country: "Holanda", flag: "🇳🇱" },
+            { id: 16, name: "Ruben Dias", pos: "ZAG", cat: "DEF", ovr: 88, club: "Manchester City", league: "Premier League", country: "Portugal", flag: "🇵🇹" },
+            { id: 17, name: "Marquinhos", pos: "ZAG", cat: "DEF", ovr: 87, club: "PSG", league: "Ligue 1", country: "Brasil", flag: "🇧🇷" },
+            { id: 18, name: "William Saliba", pos: "ZAG", cat: "DEF", ovr: 87, club: "Arsenal", league: "Premier League", country: "França", flag: "🇫🇷" },
+            { id: 19, name: "Alessandro Bastoni", pos: "ZAG", cat: "DEF", ovr: 87, club: "Inter de Milão", league: "Serie A", country: "Itália", flag: "🇮🇹" },
+            { id: 20, name: "Theo Hernández", pos: "LE", cat: "DEF", ovr: 87, club: "AC Milan", league: "Serie A", country: "França", flag: "🇫🇷" },
+            { id: 21, name: "Antonio Rüdiger", pos: "ZAG", cat: "DEF", ovr: 87, club: "Real Madrid", league: "La Liga", country: "Alemanha", flag: "🇩🇪" },
+            { id: 22, name: "Gabriel Magalhães", pos: "ZAG", cat: "DEF", ovr: 86, club: "Arsenal", league: "Premier League", country: "Brasil", flag: "🇧🇷" },
+            { id: 23, name: "Trent Alexander-Arnold", pos: "LD", cat: "DEF", ovr: 86, club: "Liverpool", league: "Premier League", country: "Inglaterra", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+            { id: 24, name: "Alejandro Grimaldo", pos: "LE", cat: "DEF", ovr: 86, club: "Bayer Leverkusen", league: "Bundesliga", country: "Espanha", flag: "🇪🇸" },
+            { id: 25, name: "Bremer", pos: "ZAG", cat: "DEF", ovr: 86, club: "Juventus", league: "Serie A", country: "Brasil", flag: "🇧🇷" },
+            { id: 26, name: "Achraf Hakimi", pos: "LD", cat: "DEF", ovr: 85, club: "PSG", league: "Ligue 1", country: "Marrocos", flag: "🇲🇦" },
+            { id: 27, name: "Éder Militão", pos: "ZAG", cat: "DEF", ovr: 85, club: "Real Madrid", league: "La Liga", country: "Brasil", flag: "🇧🇷" },
+            { id: 28, name: "Jules Koundé", pos: "LD", cat: "DEF", ovr: 85, club: "FC Barcelona", league: "La Liga", country: "França", flag: "🇫🇷" },
+            { id: 29, name: "Ronald Araújo", pos: "ZAG", cat: "DEF", ovr: 85, club: "FC Barcelona", league: "La Liga", country: "Uruguai", flag: "🇺🇾" },
+            { id: 30, name: "Jeremie Frimpong", pos: "LD", cat: "DEF", ovr: 85, club: "Bayer Leverkusen", league: "Bundesliga", country: "Holanda", flag: "🇳🇱" },
+            { id: 31, name: "Alphonso Davies", pos: "LE", cat: "DEF", ovr: 84, club: "Bayern de Munique", league: "Bundesliga", country: "Canadá", flag: "🇨🇦" },
+            { id: 32, name: "Federico Dimarco", pos: "LE", cat: "DEF", ovr: 84, club: "Inter de Milão", league: "Serie A", country: "Itália", flag: "🇮🇹" },
+            { id: 33, name: "Kyle Walker", pos: "LD", cat: "DEF", ovr: 84, club: "Manchester City", league: "Premier League", country: "Inglaterra", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+            { id: 34, name: "Lisandro Martínez", pos: "ZAG", cat: "DEF", ovr: 84, club: "Manchester United", league: "Premier League", country: "Argentina", flag: "🇦🇷" },
+            { id: 35, name: "Cristian Romero", pos: "ZAG", cat: "DEF", ovr: 84, club: "Tottenham", league: "Premier League", country: "Argentina", flag: "🇦🇷" },
+            { id: 36, name: "Edmond Tapsoba", pos: "ZAG", cat: "DEF", ovr: 82, club: "Bayer Leverkusen", league: "Bundesliga", country: "Burkina Faso", flag: "🇧🇫" },
+
+            // MIDFIELDERS (VOL, MC, MEI / MID)
+            { id: 37, name: "Rodri", pos: "VOL", cat: "MID", ovr: 90, club: "Manchester City", league: "Premier League", country: "Espanha", flag: "🇪🇸" },
+            { id: 38, name: "Kevin De Bruyne", pos: "MEI", cat: "MID", ovr: 90, club: "Manchester City", league: "Premier League", country: "Bélgica", flag: "🇧🇪" },
+            { id: 39, name: "Jude Bellingham", pos: "MEI", cat: "MID", ovr: 90, club: "Real Madrid", league: "La Liga", country: "Inglaterra", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+            { id: 40, name: "Martin Ødegaard", pos: "MEI", cat: "MID", ovr: 89, club: "Arsenal", league: "Premier League", country: "Noruega", flag: "🇳🇴" },
+            { id: 41, name: "Federico Valverde", pos: "MC", cat: "MID", ovr: 88, club: "Real Madrid", league: "La Liga", country: "Uruguai", flag: "🇺🇾" },
+            { id: 42, name: "Florian Wirtz", pos: "MEI", cat: "MID", ovr: 88, club: "Bayer Leverkusen", league: "Bundesliga", country: "Alemanha", flag: "🇩🇪" },
+            { id: 43, name: "Jamal Musiala", pos: "MEI", cat: "MID", ovr: 88, club: "Bayern de Munique", league: "Bundesliga", country: "Alemanha", flag: "🇩🇪" },
+            { id: 44, name: "Bernardo Silva", pos: "MC", cat: "MID", ovr: 88, club: "Manchester City", league: "Premier League", country: "Portugal", flag: "🇵🇹" },
+            { id: 45, name: "Bruno Fernandes", pos: "MEI", cat: "MID", ovr: 87, club: "Manchester United", league: "Premier League", country: "Portugal", flag: "🇵🇹" },
+            { id: 46, name: "Nicolò Barella", pos: "MC", cat: "MID", ovr: 87, club: "Inter de Milão", league: "Serie A", country: "Itália", flag: "🇮🇹" },
+            { id: 47, name: "Declan Rice", pos: "VOL", cat: "MID", ovr: 87, club: "Arsenal", league: "Premier League", country: "Inglaterra", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+            { id: 48, name: "Joshua Kimmich", pos: "VOL", cat: "MID", ovr: 87, club: "Bayern de Munique", league: "Bundesliga", country: "Alemanha", flag: "🇩🇪" },
+            { id: 49, name: "Luka Modrić", pos: "MC", cat: "MID", ovr: 86, club: "Real Madrid", league: "La Liga", country: "Croácia", flag: "🇭🇷" },
+            { id: 50, name: "Pedri", pos: "MC", cat: "MID", ovr: 86, club: "FC Barcelona", league: "La Liga", country: "Espanha", flag: "🇪🇸" },
+            { id: 51, name: "Alexis Mac Allister", pos: "MC", cat: "MID", ovr: 86, club: "Liverpool", league: "Premier League", country: "Argentina", flag: "🇦🇷" },
+            { id: 52, name: "Bruno Guimarães", pos: "VOL", cat: "MID", ovr: 85, club: "Newcastle", league: "Premier League", country: "Brasil", flag: "🇧🇷" },
+            { id: 53, name: "Cole Palmer", pos: "MEI", cat: "MID", ovr: 85, club: "Chelsea", league: "Premier League", country: "Inglaterra", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+            { id: 54, name: "Aurélien Tchouaméni", pos: "VOL", cat: "MID", ovr: 85, club: "Real Madrid", league: "La Liga", country: "França", flag: "🇫🇷" },
+            { id: 55, name: "Vitinha", pos: "MC", cat: "MID", ovr: 85, club: "PSG", league: "Ligue 1", country: "Portugal", flag: "🇵🇹" },
+            { id: 56, name: "Xavi Simons", pos: "MEI", cat: "MID", ovr: 84, club: "RB Leipzig", league: "Bundesliga", country: "Holanda", flag: "🇳🇱" },
+            { id: 57, name: "Eduardo Camavinga", pos: "MC", cat: "MID", ovr: 83, club: "Real Madrid", league: "La Liga", country: "França", flag: "🇫🇷" },
+            { id: 58, name: "Thomas Partey", pos: "VOL", cat: "MID", ovr: 83, club: "Arsenal", league: "Premier League", country: "Gana", flag: "🇬🇭" },
+            { id: 59, name: "Mohammed Kudus", pos: "MEI", cat: "MID", ovr: 83, club: "West Ham", league: "Premier League", country: "Gana", flag: "🇬🇭" },
+            { id: 60, name: "Franck Kessié", pos: "VOL", cat: "MID", ovr: 82, club: "Al-Ahli", league: "Saudi Pro League", country: "Costa do Marfim", flag: "🇨🇮" },
+            { id: 61, name: "Giorgian de Arrascaeta", pos: "MEI", cat: "MID", ovr: 81, club: "Flamengo", league: "Brasileirão", country: "Uruguai", flag: "🇺🇾" },
+            { id: 62, name: "Pedro Chirivella", pos: "VOL", cat: "MID", ovr: 80, club: "FC Nantes", league: "Ligue 1", country: "Espanha", flag: "🇪🇸" },
+            { id: 63, name: "James Rodríguez", pos: "MEI", cat: "MID", ovr: 80, club: "Rayo Vallecano", league: "La Liga", country: "Colômbia", flag: "🇨🇴" },
+            { id: 64, name: "Kobbie Mainoo", pos: "MC", cat: "MID", ovr: 80, club: "Manchester United", league: "Premier League", country: "Inglaterra", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+
+            // FORWARDS / ATTACKERS (PE, PD, SA, ATA / FWD)
+            { id: 65, name: "Kylian Mbappé", pos: "ATA", cat: "FWD", ovr: 91, club: "Real Madrid", league: "La Liga", country: "França", flag: "🇫🇷" },
+            { id: 66, name: "Erling Haaland", pos: "ATA", cat: "FWD", ovr: 91, club: "Manchester City", league: "Premier League", country: "Noruega", flag: "🇳🇴" },
+            { id: 67, name: "Vinícius Jr", pos: "PE", cat: "FWD", ovr: 90, club: "Real Madrid", league: "La Liga", country: "Brasil", flag: "🇧🇷" },
+            { id: 68, name: "Harry Kane", pos: "ATA", cat: "FWD", ovr: 90, club: "Bayern de Munique", league: "Bundesliga", country: "Inglaterra", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+            { id: 69, name: "Cristiano Ronaldo", pos: "ATA", cat: "FWD", ovr: 90, club: "Al-Nassr", league: "Saudi Pro League", country: "Portugal", flag: "🇵🇹" },
+            { id: 70, name: "Lionel Messi", pos: "SA", cat: "FWD", ovr: 90, club: "Inter Miami", league: "MLS", country: "Argentina", flag: "🇦🇷" },
+            { id: 71, name: "Mohamed Salah", pos: "PD", cat: "FWD", ovr: 89, club: "Liverpool", league: "Premier League", country: "Egito", flag: "🇪🇬" },
+            { id: 72, name: "Lautaro Martínez", pos: "ATA", cat: "FWD", ovr: 89, club: "Inter de Milão", league: "Serie A", country: "Argentina", flag: "🇦🇷" },
+            { id: 73, name: "Neymar Jr", pos: "PE", cat: "FWD", ovr: 89, club: "Al-Hilal", league: "Saudi Pro League", country: "Brasil", flag: "🇧🇷" },
+            { id: 74, name: "Phil Foden", pos: "PD", cat: "FWD", ovr: 89, club: "Manchester City", league: "Premier League", country: "Inglaterra", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+            { id: 75, name: "Robert Lewandowski", pos: "ATA", cat: "FWD", ovr: 88, club: "FC Barcelona", league: "La Liga", country: "Polônia", flag: "🇵🇱" },
+            { id: 76, name: "Bukayo Saka", pos: "PD", cat: "FWD", ovr: 88, club: "Arsenal", league: "Premier League", country: "Inglaterra", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+            { id: 77, name: "Antoine Griezmann", pos: "SA", cat: "FWD", ovr: 88, club: "Atlético de Madrid", league: "La Liga", country: "França", flag: "🇫🇷" },
+            { id: 78, name: "Victor Osimhen", pos: "ATA", cat: "FWD", ovr: 87, club: "Galatasaray", league: "Süper Lig", country: "Nigéria", flag: "🇳🇬" },
+            { id: 79, name: "Heung-min Son", pos: "PE", cat: "FWD", ovr: 87, club: "Tottenham", league: "Premier League", country: "Coreia do Sul", flag: "🇰🇷" },
+            { id: 80, name: "Lamine Yamal", pos: "PD", cat: "FWD", ovr: 86, club: "FC Barcelona", league: "La Liga", country: "Espanha", flag: "🇪🇸" },
+            { id: 81, name: "Rodrygo", pos: "PD", cat: "FWD", ovr: 86, club: "Real Madrid", league: "La Liga", country: "Brasil", flag: "🇧🇷" },
+            { id: 82, name: "Rafael Leão", pos: "PE", cat: "FWD", ovr: 86, club: "AC Milan", league: "Serie A", country: "Portugal", flag: "🇵🇹" },
+            { id: 83, name: "Raphinha", pos: "PD", cat: "FWD", ovr: 86, club: "FC Barcelona", league: "La Liga", country: "Brasil", flag: "🇧🇷" },
+            { id: 84, name: "Julián Álvarez", pos: "ATA", cat: "FWD", ovr: 86, club: "Atlético de Madrid", league: "La Liga", country: "Argentina", flag: "🇦🇷" },
+            { id: 85, name: "Luis Díaz", pos: "PE", cat: "FWD", ovr: 85, club: "Liverpool", league: "Premier League", country: "Colômbia", flag: "🇨🇴" },
+            { id: 86, name: "Khvicha Kvaratskhelia", pos: "PE", cat: "FWD", ovr: 85, club: "Napoli", league: "Serie A", country: "Geórgia", flag: "🇬🇪" },
+            { id: 87, name: "Ollie Watkins", pos: "ATA", cat: "FWD", ovr: 85, club: "Aston Villa", league: "Premier League", country: "Inglaterra", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+            { id: 88, name: "Paulo Dybala", pos: "SA", cat: "FWD", ovr: 84, club: "AS Roma", league: "Serie A", country: "Argentina", flag: "🇦🇷" },
+            { id: 89, name: "Ademola Lookman", pos: "PE", cat: "FWD", ovr: 84, club: "Atalanta", league: "Serie A", country: "Nigéria", flag: "🇳🇬" },
+            { id: 90, name: "Alexander Isak", pos: "ATA", cat: "FWD", ovr: 84, club: "Newcastle", league: "Premier League", country: "Suécia", flag: "🇸🇪" },
+            { id: 91, name: "Serhou Guirassy", pos: "ATA", cat: "FWD", ovr: 84, club: "Borussia Dortmund", league: "Bundesliga", country: "Guiné", flag: "🇬🇳" },
+            { id: 92, name: "Sadio Mané", pos: "PE", cat: "FWD", ovr: 84, club: "Al-Nassr", league: "Saudi Pro League", country: "Senegal", flag: "🇸🇳" },
+            { id: 93, name: "Riyad Mahrez", pos: "PD", cat: "FWD", ovr: 84, club: "Al-Ahli", league: "Saudi Pro League", country: "Argélia", flag: "🇩🇿" },
+            { id: 94, name: "Gabriel Jesus", pos: "ATA", cat: "FWD", ovr: 82, club: "Arsenal", league: "Premier League", country: "Brasil", flag: "🇧🇷" },
+            { id: 95, name: "Gabriel Martinelli", pos: "PE", cat: "FWD", ovr: 84, club: "Arsenal", league: "Premier League", country: "Brasil", flag: "🇧🇷" },
+            { id: 96, name: "Endrick", pos: "ATA", cat: "FWD", ovr: 80, club: "Real Madrid", league: "La Liga", country: "Brasil", flag: "🇧🇷" },
+            { id: 97, name: "Estêvão", pos: "PD", cat: "FWD", ovr: 80, club: "Palmeiras", league: "Brasileirão", country: "Brasil", flag: "🇧🇷" },
+            { id: 98, name: "Savinho", pos: "PD", cat: "FWD", ovr: 82, club: "Manchester City", league: "Premier League", country: "Brasil", flag: "🇧🇷" },
+            { id: 99, name: "Alejandro Garnacho", pos: "PE", cat: "FWD", ovr: 80, club: "Manchester United", league: "Premier League", country: "Argentina", flag: "🇦🇷" },
+            { id: 100, name: "Richarlison", pos: "ATA", cat: "FWD", ovr: 80, club: "Tottenham", league: "Premier League", country: "Brasil", flag: "🇧🇷" }
+        ];
+
+        // Formations preset mapping (Percentage coordinates for field overlay)
+        const FORMATIONS = {
+            "4-3-3": [
+                { pos: "GOL", top: 86, left: 50 },
+                { pos: "LE", top: 68, left: 16 },
+                { pos: "ZAG", top: 72, left: 38 },
+                { pos: "ZAG", top: 72, left: 62 },
+                { pos: "LD", top: 68, left: 84 },
+                { pos: "VOL", top: 52, left: 50 },
+                { pos: "MC", top: 38, left: 32 },
+                { pos: "MC", top: 38, left: 68 },
+                { pos: "PE", top: 18, left: 18 },
+                { pos: "ATA", top: 14, left: 50 },
+                { pos: "PD", top: 18, left: 82 }
+            ],
+            "4-4-2": [
+                { pos: "GOL", top: 86, left: 50 },
+                { pos: "LE", top: 70, left: 16 },
+                { pos: "ZAG", top: 72, left: 38 },
+                { pos: "ZAG", top: 72, left: 62 },
+                { pos: "LD", top: 70, left: 84 },
+                { pos: "MEI", top: 42, left: 18 },
+                { pos: "MC", top: 46, left: 38 },
+                { pos: "MC", top: 46, left: 62 },
+                { pos: "MEI", top: 42, left: 82 },
+                { pos: "ATA", top: 16, left: 36 },
+                { pos: "ATA", top: 16, left: 64 }
+            ],
+            "3-5-2": [
+                { pos: "GOL", top: 86, left: 50 },
+                { pos: "ZAG", top: 72, left: 24 },
+                { pos: "ZAG", top: 74, left: 50 },
+                { pos: "ZAG", top: 72, left: 76 },
+                { pos: "MEI", top: 45, left: 14 },
+                { pos: "VOL", top: 54, left: 36 },
+                { pos: "VOL", top: 54, left: 64 },
+                { pos: "MEI", top: 45, left: 86 },
+                { pos: "MEI", top: 34, left: 50 },
+                { pos: "ATA", top: 16, left: 36 },
+                { pos: "ATA", top: 16, left: 64 }
+            ],
+            "4-2-3-1": [
+                { pos: "GOL", top: 86, left: 50 },
+                { pos: "LE", top: 70, left: 16 },
+                { pos: "ZAG", top: 72, left: 38 },
+                { pos: "ZAG", top: 72, left: 62 },
+                { pos: "LD", top: 70, left: 84 },
+                { pos: "VOL", top: 52, left: 36 },
+                { pos: "VOL", top: 52, left: 64 },
+                { pos: "PE", top: 32, left: 22 },
+                { pos: "MEI", top: 28, left: 50 },
+                { pos: "PD", top: 32, left: 78 },
+                { pos: "ATA", top: 14, left: 50 }
+            ],
+            "3-4-3": [
+                { pos: "GOL", top: 86, left: 50 },
+                { pos: "ZAG", top: 72, left: 24 },
+                { pos: "ZAG", top: 74, left: 50 },
+                { pos: "ZAG", top: 72, left: 76 },
+                { pos: "MC", top: 48, left: 18 },
+                { pos: "VOL", top: 50, left: 38 },
+                { pos: "VOL", top: 50, left: 62 },
+                { pos: "MC", top: 48, left: 82 },
+                { pos: "PE", top: 18, left: 20 },
+                { pos: "ATA", top: 14, left: 50 },
+                { pos: "PD", top: 18, left: 80 }
+            ],
+            "4-1-4-1": [
+                { pos: "GOL", top: 86, left: 50 },
+                { pos: "LE", top: 70, left: 16 },
+                { pos: "ZAG", top: 72, left: 38 },
+                { pos: "ZAG", top: 72, left: 62 },
+                { pos: "LD", top: 70, left: 84 },
+                { pos: "VOL", top: 56, left: 50 },
+                { pos: "PE", top: 36, left: 18 },
+                { pos: "MC", top: 38, left: 38 },
+                { pos: "MC", top: 38, left: 62 },
+                { pos: "PD", top: 36, left: 82 },
+                { pos: "ATA", top: 14, left: 50 }
+            ],
+            "4-5-1": [
+                { pos: "GOL", top: 86, left: 50 },
+                { pos: "LE", top: 70, left: 16 },
+                { pos: "ZAG", top: 72, left: 38 },
+                { pos: "ZAG", top: 72, left: 62 },
+                { pos: "LD", top: 70, left: 84 },
+                { pos: "MEI", top: 42, left: 16 },
+                { pos: "VOL", top: 50, left: 36 },
+                { pos: "MC", top: 42, left: 50 },
+                { pos: "VOL", top: 50, left: 64 },
+                { pos: "MEI", top: 42, left: 84 },
+                { pos: "ATA", top: 15, left: 50 }
+            ],
+            "5-3-2": [
+                { pos: "GOL", top: 86, left: 50 },
+                { pos: "LE", top: 62, left: 14 },
+                { pos: "ZAG", top: 72, left: 32 },
+                { pos: "ZAG", top: 74, left: 50 },
+                { pos: "ZAG", top: 72, left: 68 },
+                { pos: "LD", top: 62, left: 86 },
+                { pos: "MC", top: 44, left: 30 },
+                { pos: "VOL", top: 48, left: 50 },
+                { pos: "MC", top: 44, left: 70 },
+                { pos: "ATA", top: 16, left: 36 },
+                { pos: "ATA", top: 16, left: 64 }
+            ],
+            "3-4-1-2": [
+                { pos: "GOL", top: 86, left: 50 },
+                { pos: "ZAG", top: 72, left: 24 },
+                { pos: "ZAG", top: 74, left: 50 },
+                { pos: "ZAG", top: 72, left: 76 },
+                { pos: "MC", top: 50, left: 16 },
+                { pos: "VOL", top: 52, left: 38 },
+                { pos: "VOL", top: 52, left: 62 },
+                { pos: "MC", top: 50, left: 84 },
+                { pos: "MEI", top: 32, left: 50 },
+                { pos: "ATA", top: 15, left: 36 },
+                { pos: "ATA", top: 15, left: 64 }
+            ],
+            "4-3-1-2": [
+                { pos: "GOL", top: 86, left: 50 },
+                { pos: "LE", top: 70, left: 16 },
+                { pos: "ZAG", top: 72, left: 38 },
+                { pos: "ZAG", top: 72, left: 62 },
+                { pos: "LD", top: 70, left: 84 },
+                { pos: "MC", top: 52, left: 28 },
+                { pos: "VOL", top: 56, left: 50 },
+                { pos: "MC", top: 52, left: 72 },
+                { pos: "MEI", top: 34, left: 50 },
+                { pos: "ATA", top: 15, left: 36 },
+                { pos: "ATA", top: 15, left: 64 }
+            ]
+        };
+
+        // Application State
+        let currentFormation = "4-3-3";
+        let squad = new Array(11).fill(null);
+        let activeSlotIndex = null;
+        let currentCategoryTab = "ALL";
+        let isSidebarMinimized = false;
+
+        // DOM Elements
+        const pitchWrapper = document.getElementById("pitch-wrapper");
+        const formationField = document.getElementById("formation-field");
+        const playerListContainer = document.getElementById("player-list-container");
+        const avgOvrDisplay = document.getElementById("avg-ovr-display");
+        const squadCountDisplay = document.getElementById("squad-count-display");
+        const playerCountBadge = document.getElementById("player-count-badge");
+        const swapModal = document.getElementById("swap-modal");
+        const modalPosBadge = document.getElementById("modal-pos-badge");
+        const modalPlayerList = document.getElementById("modal-player-list");
+
+        window.onload = function() {
+            renderPitchSlots();
+            filterPlayers();
+        };
+
+        function renderPitchSlots() {
+            formationField.innerHTML = "";
+            const coords = FORMATIONS[currentFormation];
+
+            coords.forEach((slot, index) => {
+                const player = squad[index];
+                const slotDiv = document.createElement("div");
+                slotDiv.className = "player-slot absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center cursor-pointer";
+                slotDiv.style.top = slot.top + "%";
+                slotDiv.style.left = slot.left + "%";
+                slotDiv.onclick = () => openSwapModalForIndex(index);
+
+                if (player) {
+                    // Filled Card
+                    slotDiv.innerHTML = `
+                        <div class="relative w-11 h-13 sm:w-13 sm:h-15 card-gold rounded-xl flex flex-col justify-between p-1 text-slate-950 font-bold shadow-xl">
+                            <div class="flex justify-between items-center text-[9px] sm:text-[10px] leading-none">
+                                <span class="font-black text-slate-950">${player.ovr}</span>
+                                <span class="text-[8px] uppercase font-bold px-0.5 rounded bg-slate-950/20">${player.pos}</span>
+                            </div>
+                            <div class="text-center text-xs sm:text-sm font-extrabold my-auto">
+                                ${player.flag}
+                            </div>
+                            <div class="text-[7px] sm:text-[8px] text-center bg-slate-950 text-amber-400 py-0.5 rounded truncate font-semibold">
+                                ${player.league}
+                            </div>
+                        </div>
+                        <div class="mt-1 bg-slate-950/90 border border-amber-500/40 text-white font-bold text-[9px] sm:text-[11px] px-1.5 py-0.5 rounded shadow-md max-w-[85px] sm:max-w-[105px] truncate text-center">
+                            ${player.name}
+                        </div>
+                    `;
+                } else {
+                    // Empty Position Placeholder
+                    slotDiv.innerHTML = `
+                        <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-900/90 text-emerald-400 border-2 border-dashed border-emerald-500/70 flex items-center justify-center font-black text-xs sm:text-sm shadow-lg hover:border-amber-400 hover:text-amber-400 transition-all">
+                            ${slot.pos}
+                        </div>
+                        <div class="mt-1 bg-slate-950/80 text-slate-300 font-semibold text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-full border border-slate-800">
+                            + Escalar
+                        </div>
+                    `;
+                }
+
+                formationField.appendChild(slotDiv);
+            });
+
+            updateSquadStats();
+        }
+
+        function filterPlayers() {
+            const searchQuery = document.getElementById("player-search").value.toLowerCase();
+            
+            const filtered = PLAYERS_DATABASE.filter(p => {
+                const matchesCat = (currentCategoryTab === "ALL") || (p.cat === currentCategoryTab);
+                const matchesQuery = p.name.toLowerCase().includes(searchQuery) ||
+                                     p.club.toLowerCase().includes(searchQuery) ||
+                                     p.league.toLowerCase().includes(searchQuery) ||
+                                     p.country.toLowerCase().includes(searchQuery) ||
+                                     p.pos.toLowerCase().includes(searchQuery);
+
+                return matchesCat && matchesQuery;
+            });
+
+            playerCountBadge.innerText = filtered.length;
+            playerListContainer.innerHTML = "";
+
+            if (filtered.length === 0) {
+                playerListContainer.innerHTML = `
+                    <div class="text-center py-8 text-slate-500 text-xs">
+                        Nenhum jogador encontrado.
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(player => {
+                const isSelected = squad.some(s => s && s.id === player.id);
+                const cardDiv = document.createElement("div");
+                cardDiv.className = `p-2.5 rounded-xl border flex items-center justify-between transition-all ${isSelected ? 'bg-slate-950/40 border-slate-800 opacity-50' : 'bg-slate-950 hover:bg-slate-800/80 border-slate-800 cursor-pointer'}`;
+                
+                cardDiv.onclick = () => {
+                    if (!isSelected) assignPlayerToFirstEmptyOrSlot(player);
+                };
+
+                cardDiv.innerHTML = `
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-600 to-yellow-400 text-slate-950 font-black text-xs flex flex-col items-center justify-center leading-none shadow">
+                            <span>${player.ovr}</span>
+                            <span class="text-[7px] uppercase tracking-tighter">${player.pos}</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1">
+                                <span class="font-bold text-xs text-white">${player.name}</span>
+                                <span class="text-[10px]">${player.flag}</span>
+                            </div>
+                            <div class="text-[10px] text-slate-400">
+                                <span class="text-emerald-400 font-medium">${player.league}</span> • ${player.club}
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        ${isSelected ? 
+                            `<span class="text-[9px] uppercase font-bold text-slate-500 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">No Time</span>` : 
+                            `<button class="px-2 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+                                + Add
+                             </button>`
+                        }
+                    </div>
+                `;
+
+                playerListContainer.appendChild(cardDiv);
+            });
+        }
+
+        function openSwapModalForIndex(index) {
+            activeSlotIndex = index;
+            const slotPos = FORMATIONS[currentFormation][index].pos;
+            modalPosBadge.innerText = slotPos;
+
+            document.getElementById("modal-search").value = "";
+            swapModal.classList.remove("hidden");
+            renderModalPlayers();
+        }
+
+        function closeSwapModal() {
+            swapModal.classList.add("hidden");
+            activeSlotIndex = null;
+        }
+
+        function renderModalPlayers() {
+            const query = document.getElementById("modal-search").value.toLowerCase();
+            const slotPos = FORMATIONS[currentFormation][activeSlotIndex].pos;
+            const targetCat = getCatFromPos(slotPos);
+
+            // Prioritize players matching exact position or category first
+            const eligible = PLAYERS_DATABASE.filter(p => {
+                const matchesQuery = p.name.toLowerCase().includes(query) ||
+                                     p.club.toLowerCase().includes(query) ||
+                                     p.league.toLowerCase().includes(query) ||
+                                     p.country.toLowerCase().includes(query);
+                return matchesQuery;
+            }).sort((a, b) => {
+                // Positional affinity priority
+                const aExact = (a.pos === slotPos) ? 2 : (a.cat === targetCat ? 1 : 0);
+                const bExact = (b.pos === slotPos) ? 2 : (b.cat === targetCat ? 1 : 0);
+                if (bExact !== aExact) return bExact - aExact;
+                return b.ovr - a.ovr;
+            });
+
+            modalPlayerList.innerHTML = "";
+
+            eligible.forEach(player => {
+                const isSelected = squad.some(s => s && s.id === player.id);
+                const isCurrentInSlot = squad[activeSlotIndex] && squad[activeSlotIndex].id === player.id;
+
+                const item = document.createElement("div");
+                item.className = `p-2.5 rounded-xl border flex items-center justify-between transition-all ${isCurrentInSlot ? 'bg-emerald-950/40 border-emerald-500/50' : (isSelected ? 'bg-slate-950/40 border-slate-800 opacity-50' : 'bg-slate-950 hover:bg-slate-800 border-slate-800 cursor-pointer')}`;
+
+                if (!isSelected) {
+                    item.onclick = () => {
+                        squad[activeSlotIndex] = player;
+                        closeSwapModal();
+                        renderPitchSlots();
+                        filterPlayers();
+                    };
+                }
+
+                item.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-amber-600 to-yellow-400 text-slate-950 font-black text-xs flex flex-col items-center justify-center leading-none">
+                            <span>${player.ovr}</span>
+                            <span class="text-[7px] uppercase font-extrabold">${player.pos}</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-bold text-xs text-white">${player.name}</span>
+                                <span>${player.flag}</span>
+                            </div>
+                            <div class="text-[10px] text-slate-400">
+                                <span class="text-emerald-400 font-medium">${player.league}</span> • ${player.club}
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        ${isCurrentInSlot ? 
+                            `<span class="text-[9px] uppercase font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Titular</span>` :
+                            (isSelected ? 
+                                `<span class="text-[9px] uppercase font-bold text-slate-500 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">Em Outra Posição</span>` :
+                                `<button class="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow">
+                                    Substituir
+                                 </button>`
+                            )
+                        }
+                    </div>
+                `;
+
+                modalPlayerList.appendChild(item);
+            });
+        }
+
+        function removePlayerFromCurrentSlot() {
+            if (activeSlotIndex !== null) {
+                squad[activeSlotIndex] = null;
+                closeSwapModal();
+                renderPitchSlots();
+                filterPlayers();
+            }
+        }
+
+        // Assign to first empty slot
+        function assignPlayerToFirstEmptyOrSlot(player) {
+            const emptyIndex = squad.findIndex(s => s === null);
+            if (emptyIndex !== -1) {
+                squad[emptyIndex] = player;
+                renderPitchSlots();
+                filterPlayers();
+            } else {
+                alert("O time já possui 11 titulares. Clique em um jogador no campo para substituí-lo.");
+            }
+        }
+
+        function generateRandomSquad() {
+            clearSquad();
+            const formationPositions = FORMATIONS[currentFormation];
+
+            formationPositions.forEach((slot, index) => {
+                let candidateList = PLAYERS_DATABASE.filter(p => p.cat === getCatFromPos(slot.pos) && !squad.includes(p));
+                if (candidateList.length === 0) {
+                    candidateList = PLAYERS_DATABASE.filter(p => !squad.includes(p));
+                }
+
+                if (candidateList.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * candidateList.length);
+                    squad[index] = candidateList[randomIndex];
+                }
+            });
+
+            renderPitchSlots();
+            filterPlayers();
+        }
+
+        function getCatFromPos(pos) {
+            if (pos === "GOL") return "GK";
+            if (["ZAG", "LD", "LE"].includes(pos)) return "DEF";
+            if (["VOL", "MC", "MEI"].includes(pos)) return "MID";
+            return "FWD";
+        }
+
+        function clearSquad() {
+            squad = new Array(11).fill(null);
+            renderPitchSlots();
+            filterPlayers();
+        }
+
+        function changeFormation(newFormation) {
+            currentFormation = newFormation;
+            renderPitchSlots();
+        }
+
+        function setActiveTab(category) {
+            currentCategoryTab = category;
+            document.querySelectorAll(".tab-btn").forEach(btn => {
+                btn.className = "tab-btn px-2.5 py-1.5 rounded-t-lg text-slate-400 hover:text-slate-200 hover:bg-slate-900 whitespace-nowrap text-[11px] transition-all";
+            });
+
+            const activeBtn = document.getElementById(`tab-${category}`);
+            if (activeBtn) {
+                activeBtn.className = "tab-btn px-2.5 py-1.5 rounded-t-lg bg-slate-800 text-emerald-400 border-t-2 border-emerald-500 whitespace-nowrap text-[11px] transition-all font-bold";
+            }
+
+            filterPlayers();
+        }
+
+        // Toggle Sidebar Minimize / Expand
+        function toggleSidebarMinimize() {
+            const content = document.getElementById("sidebar-content");
+            const icon = document.getElementById("minimize-icon");
+            const text = document.getElementById("minimize-text");
+
+            isSidebarMinimized = !isSidebarMinimized;
+
+            if (isSidebarMinimized) {
+                content.classList.add("hidden");
+                icon.className = "fa-solid fa-chevron-down text-xs";
+                text.innerText = "Expandir";
+            } else {
+                content.classList.remove("hidden");
+                icon.className = "fa-solid fa-chevron-up text-xs";
+                text.innerText = "Minimizar";
+            }
+        }
+
+        // Toggle 2D / 3D Pitch View Mode
+        function togglePitchView(mode) {
+            const btn2d = document.getElementById("view-2d-btn");
+            const btn3d = document.getElementById("view-3d-btn");
+
+            if (mode === '3d') {
+                pitchWrapper.classList.remove("pitch-2d");
+                pitchWrapper.classList.add("pitch-3d");
+                btn3d.className = "px-3 py-1 rounded-lg text-xs font-bold transition-all bg-emerald-500 text-slate-950 shadow-md";
+                btn2d.className = "px-3 py-1 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all";
+            } else {
+                pitchWrapper.classList.remove("pitch-3d");
+                pitchWrapper.classList.add("pitch-2d");
+                btn2d.className = "px-3 py-1 rounded-lg text-xs font-bold transition-all bg-emerald-500 text-slate-950 shadow-md";
+                btn3d.className = "px-3 py-1 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition-all";
+            }
+        }
+
+        function updateSquadStats() {
+            const filledCount = squad.filter(s => s !== null).length;
+            squadCountDisplay.innerText = `${filledCount}/11`;
+
+            if (filledCount === 0) {
+                avgOvrDisplay.innerText = "0";
+                return;
+            }
+
+            const totalOvr = squad.reduce((sum, p) => sum + (p ? p.ovr : 0), 0);
+            avgOvrDisplay.innerText = Math.round(totalOvr / filledCount);
+        }
+    </script>
+</body>
+</html>
